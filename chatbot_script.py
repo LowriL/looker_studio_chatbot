@@ -199,24 +199,33 @@ def parse_data_to_dataframe(result):
 @st.cache_data(ttl=3000) # Cache token for 50 minutes
 def get_access_token():
     """
-    Gets the Google Cloud access token using a service account 
-    from Streamlit Secrets.
+    Gets the Google Cloud access token using service account keys
+    stored as individual Streamlit Secrets.
     """
     try:
-        # Check if the secret exists
-        if "GCP_SERVICE_ACCOUNT_JSON" not in st.secrets:
-            st.error("GCP_SERVICE_ACCOUNT_JSON secret not found. Please add it to your Streamlit app settings.")
-            st.stop() # Halt the app if auth is missing
+        # Check for the minimal required keys
+        required_keys = ["type", "project_id", "private_key", "client_email"]
+        if not all(key in st.secrets for key in required_keys):
+            st.error("Missing one or more required GCP service account keys in Streamlit secrets.")
+            st.info("Please open your service account JSON file and add each key-value pair as a separate secret in your Streamlit app settings.")
+            st.stop()
 
-        # Load the credentials from the secret
-        creds_json = st.secrets["GCP_SERVICE_ACCOUNT_JSON"]
+        # Build the credentials dictionary from individual secrets
+        # The .replace() for private_key is a common fix for
+        # newlines being stored as text.
+        creds_dict = {
+            "type": st.secrets["type"],
+            "project_id": st.secrets["project_id"],
+            "private_key_id": st.secrets.get("private_key_id"),
+            "private_key": st.secrets["private_key"].replace('\\n', '\n'),
+            "client_email": st.secrets["client_email"],
+            "client_id": st.secrets.get("client_id"),
+            "auth_uri": st.secrets.get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
+            "token_uri": st.secrets.get("token_uri", "https://oauth2.googleapis.com/token"),
+            "auth_provider_x509_cert_url": st.secrets.get("auth_provider_x509_cert_url", "https://www.googleapis.com/oauth2/v1/certs"),
+            "client_x509_cert_url": st.secrets.get("client_x509_cert_url")
+        }
         
-        # In case the secret is stored as a string, parse it.
-        if isinstance(creds_json, str):
-            creds_dict = json.loads(creds_json)
-        else:
-            creds_dict = creds_json # Already a dict
-            
         scopes = ["https://www.googleapis.com/auth/cloud-platform"]
         
         credentials = service_account.Credentials.from_service_account_info(
@@ -228,11 +237,8 @@ def get_access_token():
         
         return credentials.token
     
-    except json.JSONDecodeError:
-        st.error("Failed to decode GCP_SERVICE_ACCOUNT_JSON. Make sure you pasted the entire, valid JSON file content into the Streamlit secret.")
-        st.stop()
     except Exception as e:
-        st.error(f"Error getting auth token from service account: {e}")
+        st.error(f"Error getting auth token from service account secrets: {e}")
         st.stop()
 
 # --- Streaming Chat Function ---
