@@ -199,24 +199,41 @@ def parse_data_to_dataframe(result):
 @st.cache_data(ttl=3000) # Cache token for 50 minutes
 def get_access_token():
     """
-    Gets the Google Cloud access token using Application Default Credentials (ADC).
-    Relies on user being authenticated via `gcloud auth application-default login`.
+    Gets the Google Cloud access token using a service account 
+    from Streamlit Secrets.
     """
     try:
+        # Check if the secret exists
+        if "GCP_SERVICE_ACCOUNT_JSON" not in st.secrets:
+            st.error("GCP_SERVICE_ACCOUNT_JSON secret not found. Please add it to your Streamlit app settings.")
+            st.stop() # Halt the app if auth is missing
+
+        # Load the credentials from the secret
+        creds_json = st.secrets["GCP_SERVICE_ACCOUNT_JSON"]
+        
+        # In case the secret is stored as a string, parse it.
+        if isinstance(creds_json, str):
+            creds_dict = json.loads(creds_json)
+        else:
+            creds_dict = creds_json # Already a dict
+            
         scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-        credentials, _ = google.auth.default(scopes=scopes)
+        
+        credentials = service_account.Credentials.from_service_account_info(
+            creds_dict, scopes=scopes
+        )
         
         auth_req = google.auth.transport.requests.Request()
         credentials.refresh(auth_req)
         
         return credentials.token
+    
+    except json.JSONDecodeError:
+        st.error("Failed to decode GCP_SERVICE_ACCOUNT_JSON. Make sure you pasted the entire, valid JSON file content into the Streamlit secret.")
+        st.stop()
     except Exception as e:
-        st.error(f"Error getting auth token: {e}")
-        st.warning(
-            "Please ensure you are authenticated locally to Google Cloud. Run `gcloud auth application-default login` in your terminal.", 
-            icon="⚠️"
-        )
-        return None
+        st.error(f"Error getting auth token from service account: {e}")
+        st.stop()
 
 # --- Streaming Chat Function ---
 
