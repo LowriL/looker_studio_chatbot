@@ -16,73 +16,104 @@ st.set_page_config(
 
 # --- Theme ---
 def add_custom_css():
-    """Injects custom CSS to apply a Measurelab-style theme."""
+    """
+    Injects custom CSS to apply the new theme based on the provided
+    Tailwind/shadcn variable definitions.
+    """
     st.markdown(
         """
         <style>
-            /* --- Measurelab Theme --- */
+            /* 1. Import Poppins Font */
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+            /* 2. Define the core variables from your file */
+            :root {
+                --background: oklch(1.0000 0 0);
+                --foreground: oklch(0.1408 0.0044 285.8229);
+                --primary: oklch(0.7879 0.1991 139.5227);
+                --primary-foreground: oklch(1.0000 0 0);
+                --secondary: oklch(0.9579 0.0013 106.4242);
+                --secondary-foreground: oklch(0.2163 0.0435 230.7774);
+                --muted: oklch(0.9674 0.0013 286.3752);
+                --muted-foreground: oklch(0.3730 0.0340 259.7330);
+                --border: oklch(0.9197 0.0040 286.3202);
+                --radius: 0.625rem;
+                --sidebar: oklch(0.9851 0 0);
+                --sidebar-foreground: oklch(0.1408 0.0044 285.8229);
+                --font-sans: 'Poppins', sans-serif;
+            }
+
+            /* 3. Apply the theme to Streamlit components */
+            
+            body {
+                font-family: var(--font-sans);
+            }
 
             /* Main app background */
             .stApp {
-                background-color: #FFFFFF; /* Clean white */
+                background-color: var(--background);
+                color: var(--foreground);
+                font-family: var(--font-sans);
             }
 
             /* Sidebar */
             [data-testid="stSidebar"] {
-                background-color: #F0F2F6; /* Light grey sidebar */
-                border-right: 1px solid #D0D0D0;
+                background-color: var(--sidebar);
+                border-right: 1px solid var(--border);
             }
             [data-testid="stSidebar"] .stHeader {
-                 color: #0A2B4C; /* Dark blue 'Configuration' */
+                 color: var(--sidebar-foreground);
             }
             [data-testid="stSidebar"] .stMarkdown {
-                 color: #333;
+                 color: var(--sidebar-foreground);
             }
 
             /* Main Title */
             h1 {
-                color: #0A2B4C; /* Dark blue */
+                color: var(--foreground);
+                font-family: var(--font-sans);
             }
             
             /* Main caption */
             .stApp > .main .block-container div[data-testid="stMarkdown"] p {
-                color: #555555;
+                color: var(--muted-foreground);
             }
 
             /* Chat Messages */
             [data-testid="stChatMessage"] {
-                background-color: #F0F2F6; /* Light grey for assistant */
-                border-radius: 8px;
-                border: 1px solid #D0D0D0;
-                padding: 12px;
+                background-color: var(--secondary); /* Assistant message */
+                border-radius: var(--radius);
+                border: 1px solid var(--border);
+                color: var(--secondary-foreground);
             }
             [data-testid="stChatMessage"][data-user-message="true"] {
-                background-color: #E0E7FF; /* Lighter blue for user */
-                border: 1px solid #C0C7E0;
+                background-color: var(--muted); /* User message */
+                border: 1px solid var(--border);
+                color: var(--muted-foreground);
             }
 
             /* Sidebar Button */
             [data-testid="stSidebar"] .stButton>button {
-                background-color: #FF6B00; /* Measurelab Orange */
-                color: white;
+                background-color: var(--primary); /* New primary color */
+                color: var(--primary-foreground);
                 border: none;
-                border-radius: 5px;
-                width: 100%; /* Make button full-width */
+                border-radius: var(--radius);
+                width: 100%;
             }
             [data-testid="stSidebar"] .stButton>button:hover {
-                background-color: #E05A00; /* Darker orange on hover */
-                color: white;
+                background-color: var(--primary);
+                opacity: 0.85;
+                color: var(--primary-foreground);
                 border: none;
             }
             
             /* Ensure auth note code is readable */
             [data-testid="stSidebar"] .stMarkdown code {
-                background-color: #DDE1E7;
-                color: #333;
+                background-color: var(--border);
+                color: var(--foreground);
                 border-radius: 4px;
                 padding: 2px 4px;
             }
-
         </style>
         """,
         unsafe_allow_html=True,
