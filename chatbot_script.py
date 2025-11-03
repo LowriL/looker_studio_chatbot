@@ -42,6 +42,18 @@ def add_custom_css():
                 --sidebar-foreground: oklch(0.1408 0.0044 285.8229);
                 --font-sans: 'Poppins', sans-serif;
             }
+            
+            /* Hide sidebar */
+            [data-testid="stSidebar"] {
+                display: none;
+            }
+            
+            /* Adjust main app margin now that sidebar is gone */
+            .main .block-container {
+                max-width: 100%;
+                padding-left: 2rem;
+                padding-right: 2rem;
+            }
 
             /* 3. Apply the theme to Streamlit components */
             
@@ -56,18 +68,6 @@ def add_custom_css():
                 font-family: var(--font-sans);
             }
 
-            /* Sidebar */
-            [data-testid="stSidebar"] {
-                background-color: var(--sidebar);
-                border-right: 1px solid var(--border);
-            }
-            [data-testid="stSidebar"] .stHeader {
-                 color: var(--sidebar-foreground);
-            }
-            [data-testid="stSidebar"] .stMarkdown {
-                 color: var(--sidebar-foreground);
-            }
-
             /* Main Title */
             h1 {
                 color: var(--foreground);
@@ -77,6 +77,22 @@ def add_custom_css():
             /* Main caption */
             .stApp > .main .block-container div[data-testid="stMarkdown"] p {
                 color: var(--muted-foreground);
+            }
+            
+            /* Clear chat button */
+            .stButton>button {
+                background-color: var(--primary);
+                color: var(--primary-foreground);
+                border: none;
+                border-radius: var(--radius);
+                padding: 0.25rem 0.75rem;
+                font-size: 0.875rem;
+            }
+            .stButton>button:hover {
+                background-color: var(--primary);
+                opacity: 0.85;
+                color: var(--primary-foreground);
+                border: none;
             }
 
             /* Chat Messages */
@@ -91,29 +107,20 @@ def add_custom_css():
                 border: 1px solid var(--border);
                 color: var(--muted-foreground);
             }
-
-            /* Sidebar Button */
-            [data-testid="stSidebar"] .stButton>button {
-                background-color: var(--primary); /* New primary color */
-                color: var(--primary-foreground);
-                border: none;
-                border-radius: var(--radius);
-                width: 100%;
-            }
-            [data-testid="stSidebar"] .stButton>button:hover {
-                background-color: var(--primary);
-                opacity: 0.85;
-                color: var(--primary-foreground);
-                border: none;
-            }
             
-            /* Ensure auth note code is readable */
-            [data-testid="stSidebar"] .stMarkdown code {
-                background-color: var(--border);
-                color: var(--foreground);
-                border-radius: 4px;
-                padding: 2px 4px;
+            /* Auth warning */
+            [data-testid="stWarning"] {
+                background-color: oklch(0.98 0.09 90); /* Light yellow */
+                border-color: oklch(0.8 0.1 90); /* Darker yellow border */
+                border-radius: var(--radius);
+                padding: 1rem;
             }
+            [data-testid="stWarning"] code {
+                background-color: oklch(0.9 0.05 90);
+                padding: 2px 5px;
+                border-radius: 4px;
+            }
+
         </style>
         """,
         unsafe_allow_html=True,
@@ -197,8 +204,6 @@ def get_access_token():
     """
     try:
         scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-        # Note: google.auth.default() can return the project, but we override it
-        # based on the user's request.
         credentials, _ = google.auth.default(scopes=scopes)
         
         auth_req = google.auth.transport.requests.Request()
@@ -207,7 +212,10 @@ def get_access_token():
         return credentials.token
     except Exception as e:
         st.error(f"Error getting auth token: {e}")
-        st.warning("Please ensure you are authenticated locally to Google Cloud. Run `gcloud auth application-default login` in your terminal.", icon="⚠️")
+        st.warning(
+            "Please ensure you are authenticated locally to Google Cloud. Run `gcloud auth application-default login` in your terminal.", 
+            icon="⚠️"
+        )
         return None
 
 # --- Streaming Chat Function ---
@@ -304,59 +312,35 @@ def stream_chat_response(chat_url, payload, headers):
 
 # --- Streamlit UI ---
 
+# --- Hardcoded Configuration ---
+BILLING_PROJECT = "measurelab-admin-01"
+LOCATION = "global"
+API_VERSION = "v1beta"
+ENVIRONMENT = "prod" # "prod", "autopush", "staging"
+DATA_AGENT_ID = "data_agent_1"
+
+# --- Base URL Logic ---
+if ENVIRONMENT == "autopush":
+    base_url = "https://autopush-geminidataanalytics.sandbox.googleapis.com"
+elif ENVIRONMENT == "staging":
+    base_url = "https://staging-geminidataanalytics.sandbox.googleapis.com"
+else:
+    base_url = "https://geminidataanalytics.googleapis.com"
+
+
 st.title("📈 Measurelab Data Assistant")
-st.caption("Powered by the Gemini Conversational Analytics API")
 
-# --- Sidebar for Configuration ---
-with st.sidebar:
-    st.header("Configuration")
-    
-    # Get token
-    access_token = get_access_token()
-    
-    # Hardcode Project ID per request and display as disabled
-    billing_project = "measurelab-admin-01"
-    st.text_input(
-        "Google Cloud Project ID",
-        value=billing_project,
-        disabled=True,
-        help="This is hardcoded to the Measurelab admin project."
-    )
-    
-    location = st.text_input("Location", "global")
-    api_version = st.text_input("API Version", "v1beta")
-    
-    environment = st.selectbox(
-        "Environment", 
-        ("prod", "autopush", "staging"),
-        help="Select the API environment."
-    )
-    
-    data_agent_id = st.text_input(
-        "Data Agent ID", 
-        "data_agent_1",
-        help="The ID of the Data Agent to use."
-    )
-
+# --- Clear Chat Button ---
+col1, col2 = st.columns([0.8, 0.2])
+with col1:
+    st.caption("Powered by the Gemini Conversational Analytics API")
+with col2:
     if st.button("Clear Chat History"):
         st.session_state.messages = []
         st.session_state.conversation_messages = []
         st.rerun()
 
-    st.markdown("---")
-    st.markdown(
-        "**Note:** This app uses Application Default Credentials (ADC). "
-        "Please authenticate in your terminal before running:\n"
-        "`gcloud auth application-default login`"
-    )
-
-# --- Base URL Logic ---
-if environment == "autopush":
-    base_url = "https://autopush-geminidataanalytics.sandbox.googleapis.com"
-elif environment == "staging":
-    base_url = "https://staging-geminidataanalytics.sandbox.googleapis.com"
-else:
-    base_url = "https://geminidataanalytics.googleapis.com"
+st.markdown("---") # Visual separator
 
 # --- Initialize session state ---
 if "messages" not in st.session_state:
@@ -399,9 +383,12 @@ for message in st.session_state.messages:
 
 # --- Chat Input ---
 if prompt := st.chat_input("Ask your data agent..."):
-    # Check for config
-    if not all([billing_project, location, data_agent_id, access_token]):
-        st.error("Configuration missing. Please fill in all fields in the sidebar and ensure you are authenticated.")
+    # Get token *only* when user sends a message
+    access_token = get_access_token()
+    
+    # Check for auth
+    if not access_token:
+        st.error("Authentication failed. Please check the terminal and auth warning.")
     else:
         # Add user message to UI
         st.session_state.messages.append({"role": "user", "content": [{"type": "text", "content": prompt}]})
@@ -412,7 +399,7 @@ if prompt := st.chat_input("Ask your data agent..."):
         st.session_state.conversation_messages.append({"userMessage": {"text": prompt}})
 
         # Prepare API request
-        chat_url = f"{base_url}/{api_version}/projects/{billing_project}/locations/{location}:chat"
+        chat_url = f"{base_url}/{API_VERSION}/projects/{BILLING_PROJECT}/locations/{LOCATION}:chat"
         
         headers = {
             "Authorization": f"Bearer {access_token}",
@@ -420,10 +407,10 @@ if prompt := st.chat_input("Ask your data agent..."):
         }
         
         chat_payload = {
-            "parent": f"projects/{billing_project}/locations/global",
+            "parent": f"projects/{BILLING_PROJECT}/locations/global",
             "messages": st.session_state.conversation_messages,
             "data_agent_context": {
-                "data_agent": f"projects/{billing_project}/locations/{location}/dataAgents/{data_agent_id}",
+                "data_agent": f"projects/{BILLING_PROJECT}/locations/{LOCATION}/dataAgents/{DATA_AGENT_ID}",
             },
         }
 
@@ -446,9 +433,6 @@ if prompt := st.chat_input("Ask your data agent..."):
                 full_display_list.append(chunk)
                 
                 # Render all content for this turn so far
-                # This logic is a bit complex to handle streaming text
-                # before and after non-text blocks (like DFs or charts)
-                
                 if chunk["type"] == "text":
                     current_text += chunk["content"] + "\n\n"
                     with placeholder.container():
@@ -479,7 +463,7 @@ if prompt := st.chat_input("Ask your data agent..."):
                     placeholder = st.empty()
 
             # After the loop, if there's any remaining text,
-            # ensure it's rendered. (This is often the final text part)
+            # ensure it's rendered.
             if current_text:
                 with placeholder.container():
                     st.markdown(current_text)
