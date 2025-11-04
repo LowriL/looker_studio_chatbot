@@ -340,7 +340,7 @@ BILLING_PROJECT = "measurelab-admin-01"
 LOCATION = "global"
 API_VERSION = "v1beta"
 ENVIRONMENT = "prod" # "prod", "autopush", "staging"
-DATA_AGENT_ID = "data_agent_1"
+DATA_AGENT_ID = "data_agent_2"
 
 # --- Base URL Logic ---
 if ENVIRONMENT == "autopush":
