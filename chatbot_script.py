@@ -317,7 +317,6 @@ def stream_chat_response(chat_url, payload, headers):
                         df = parse_data_to_dataframe(msg["data"]["result"])
                         latest_data_rows = msg["data"]["result"].get("data", [])
                         yield {"type": "dataframe", "content": df}
-                
                 elif "chart" in msg:
                     if "query" in msg["chart"]:
                         yield {"type": "text", "content": f"**Generating chart for:** *{msg['chart']['query']['instructions']}*"}
@@ -325,9 +324,15 @@ def stream_chat_response(chat_url, payload, headers):
                         yield {"type": "text", "content": "**Chart generated:**"}
                         spec = msg["chart"]["result"]["vegaConfig"]
                         if latest_data_rows is not None:
-                            spec["data"] = {"values": latest_data_rows}
+                            data_key = spec.get("data", {}).get("name")
+                            if data_key:
+                                if "datasets" not in spec:
+                                    spec["datasets"] = {}
+                                spec["datasets"][data_key] = latest_data_rows
+                            else: 
+                                spec["data"] = {"values": latest_data_rows}
                             latest_data_rows = None
-                            yield {"type": "chart", "content": spec}
+                        yield {"type": "chart", "content": spec}
                   
                 acc = ""  # Reset accumulator
 
