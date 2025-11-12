@@ -294,46 +294,42 @@ def stream_chat_response(chat_url, payload, headers):
                 msg = data_json["systemMessage"]
     
                   # Handle different message types
-                  if "text" in msg:
-                      yield {"type": "text", "content": "".join(msg["text"]["parts"])}
+                if "text" in msg:
+                    yield {"type": "text", "content": "".join(msg["text"]["parts"])}
+                elif "schema" in msg:
+                    if "query" in msg["schema"]:
+                        yield {"type": "text", "content": f"**Resolving schema for:** *{msg['schema']['query']['question']}*"}
+                    elif "result" in msg["schema"]:
+                        yield {"type": "text", "content": "**Schema resolved. Data sources:**"}
+                        dfs = parse_schema_to_dataframe(msg["schema"]["result"]["datasources"])
+                        for source_name, df in dfs:
+                            yield {"type": "text", "content": f"**{source_name}**"}
+                            yield {"type": "dataframe", "content": df}
+                elif "data" in msg:
+                    if "query" in msg["data"]:
+                        query = msg["data"]["query"]
+                        yield {"type": "text", "content": f"**Retrieval Query:** *{query['question']}*"}
+                    elif "generatedSql" in msg["data"]:
+                        yield {"type": "text", "content": "**Generated SQL:**"}
+                        yield {"type": "sql", "content": msg["data"]["generatedSql"]}
+                    elif "result" in msg["data"]:
+                        yield {"type": "text", "content": "**Data retrieved:**"}
+                        df = parse_data_to_dataframe(msg["data"]["result"])
+                        latest_data_rows = msg["data"]["result"].get("data", [])
+                        yield {"type": "dataframe", "content": df}
+                
+                elif "chart" in msg:
+                    if "query" in msg["chart"]:
+                        yield {"type": "text", "content": f"**Generating chart for:** *{msg['chart']['query']['instructions']}*"}
+                    elif "result" in msg["chart"]:
+                        yield {"type": "text", "content": "**Chart generated:**"}
+                        spec = msg["chart"]["result"]["vegaConfig"]
+                        if latest_data_rows is not None:
+                            spec["data"] = {"values": latest_data_rows}
+                            latest_data_rows = None
+                            yield {"type": "chart", "content": spec}
                   
-                  elif "schema" in msg:
-                      if "query" in msg["schema"]:
-                          yield {"type": "text", "content": f"**Resolving schema for:** *{msg['schema']['query']['question']}*"}
-                      elif "result" in msg["schema"]:
-                          yield {"type": "text", "content": "**Schema resolved. Data sources:**"}
-                          dfs = parse_schema_to_dataframe(msg["schema"]["result"]["datasources"])
-                          for source_name, df in dfs:
-                              yield {"type": "text", "content": f"**{source_name}**"}
-                              yield {"type": "dataframe", "content": df}
-                  
-                  elif "data" in msg:
-                      if "query" in msg["data"]:
-                          query = msg["data"]["query"]
-                          yield {"type": "text", "content": f"**Retrieval Query:** *{query['question']}*"}
-                      elif "generatedSql" in msg["data"]:
-                          yield {"type": "text", "content": "**Generated SQL:**"}
-                          yield {"type": "sql", "content": msg["data"]["generatedSql"]}
-                      elif "result" in msg["data"]:
-                          yield {"type": "text", "content": "**Data retrieved:**"}
-                          df = parse_data_to_dataframe(msg["data"]["result"])
-                          latest_data_rows = msg["data"]["result"].get("data", [])
-                          yield {"type": "dataframe", "content": df}
-        
-                  # --- THIS IS THE CORRECTED BLOCK ---
-                  # It is now DE-DENTED and at the same level as "data" and "schema"
-                  elif "chart" in msg:
-                      if "query" in msg["chart"]:
-                          yield {"type": "text", "content": f"**Generating chart for:** *{msg['chart']['query']['instructions']}*"}
-                      elif "result" in msg["chart"]:
-                          yield {"type": "text", "content": "**Chart generated:**"}
-                          spec = msg["chart"]["result"]["vegaConfig"]
-                          if latest_data_rows is not None:
-                              spec["data"] = {"values": latest_data_rows}
-                              latest_data_rows = None
-                          yield {"type": "chart", "content": spec}
-                  
-                  acc = ""  # Reset accumulator
+                acc = ""  # Reset accumulator
 
     except requests.exceptions.RequestException as e:
         yield {"type": "error", "content": f"Request failed: {e}"}
