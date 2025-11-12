@@ -394,7 +394,7 @@ for message in st.session_state.messages:
                     st.dataframe(item["content"])
                 elif item["type"] == "chart":
                     try:
-                        st.altair_chart(alt.Chart.from_json(item["content"]), use_container_width=True)
+                        st.altair_chart(item["content"], use_container_width=True)
                     except Exception as e:
                         st.error(f"Failed to render chart: {e}")
                 elif item["type"] == "error":
@@ -457,7 +457,7 @@ if prompt := st.chat_input("Ask your data agent..."):
                 
                 # Render all content for this turn so far
                 if chunk["type"] == "text":
-                    current_text += chunk["content"] + "\n\n"
+                    current_text += chunk["content"]
                     with placeholder.container():
                         st.markdown(current_text)
                 
@@ -475,7 +475,7 @@ if prompt := st.chat_input("Ask your data agent..."):
                             st.dataframe(chunk["content"])
                         elif chunk["type"] == "chart":
                             try:
-                                st.altair_chart(alt.Chart.from_json(chunk["content"]), use_container_width=True)
+                                st.altair_chart(item["content"], use_container_width=True)
                             except Exception as e:
                                 st.error(f"Failed to render chart: {e}")
                         elif chunk["type"] == "error":
