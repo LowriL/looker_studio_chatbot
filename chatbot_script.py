@@ -398,7 +398,7 @@ for message in st.session_state.messages:
                     st.dataframe(item["content"])
                 elif item["type"] == "chart":
                     try:
-                        st.altair_chart(alt.Chart.from_dict(chunk["content"]), use_container_width=True)
+                        st.altair_chart(alt.Chart.from_dict(item["content"]), use_container_width=True)
                     except Exception as e:
                         st.error(f"Failed to render chart: {e}")
                 elif item["type"] == "error":
