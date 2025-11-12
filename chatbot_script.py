@@ -323,8 +323,8 @@ def stream_chat_response(chat_url, payload, headers):
                         yield {"type": "text", "content": "**Chart generated:**"}
                         spec = msg["chart"]["result"]["vegaConfig"]
                         if latest_data_rows is not None:
-                        spec["data"] = {"values": latest_data_rows}
-                        latest_data_rows = None
+                            spec["data"] = {"values": latest_data_rows}
+                            latest_data_rows = None
                         yield {"type": "chart", "content": spec}
                 
                 acc = ""  # Reset accumulator
