@@ -474,9 +474,9 @@ if prompt := st.chat_input("Ask your data agent..."):
                         elif chunk["type"] == "dataframe":
                             st.dataframe(chunk["content"])
                         elif chunk["type"] == "chart":
-                            try:
+                            try:
                                 st.altair_chart(chunk["content"], use_container_width=True) 
-                            except Exception as e:
+                            except Exception as e:
                                 st.error(f"Failed to render chart: {e}")
                         elif chunk["type"] == "error":
                             st.error(chunk["content"])
