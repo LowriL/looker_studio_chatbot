@@ -336,7 +336,7 @@ def stream_chat_response(chat_url, payload, headers):
 # --- Streamlit UI ---
 
 # --- Hardcoded Configuration ---
-BILLING_PROJECT = "measurelab-admin-01"
+BILLING_PROJECT = "ml-aihub-d-efbcu"
 LOCATION = "global"
 API_VERSION = "v1beta"
 ENVIRONMENT = "prod" # "prod", "autopush", "staging"
