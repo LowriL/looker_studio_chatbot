@@ -251,6 +251,7 @@ def stream_chat_response(chat_url, payload, headers):
     """
     s = requests.Session()
     acc = ""  # JSON accumulator
+    latest_data_rows = None
 
     try:
         with s.post(chat_url, json=payload, headers=headers, stream=True, timeout=600) as resp:
@@ -316,14 +317,15 @@ def stream_chat_response(chat_url, payload, headers):
                     elif "result" in msg["data"]:
                         yield {"type": "text", "content": "**Data retrieved:**"}
                         df = parse_data_to_dataframe(msg["data"]["result"])
+                        latest_data_rows = msg["data"]["result"].get("data", [])
                         yield {"type": "dataframe", "content": df}
-                
-                elif "chart" in msg:
-                    if "query" in msg["chart"]:
-                        yield {"type": "text", "content": f"**Generating chart for:** *{msg['chart']['query']['instructions']}*"}
                     elif "result" in msg["chart"]:
                         yield {"type": "text", "content": "**Chart generated:**"}
-                        yield {"type": "chart", "content": msg["chart"]["result"]["vegaConfig"]}
+                        spec = msg["chart"]["result"]["vegaConfig"]
+                        if latest_data_rows is not None:
+                        spec["data"] = {"values": latest_data_rows}
+                        latest_data_rows = None
+                        yield {"type": "chart", "content": spec}
                 
                 acc = ""  # Reset accumulator
 
