@@ -380,7 +380,7 @@ for message in st.session_state.messages:
         current_text = ""
         for item in content_list:
             if item["type"] == "text":
-                current_text += item["content"] + "\n\n"
+                current_text += item["content"]
             else:
                 # If we have pending text, write it
                 if current_text:
@@ -474,10 +474,10 @@ if prompt := st.chat_input("Ask your data agent..."):
                         elif chunk["type"] == "dataframe":
                             st.dataframe(chunk["content"])
                         elif chunk["type"] == "chart":
-                            try:
-                                st.altair_chart(item["content"], use_container_width=True)
-                            except Exception as e:
-                                st.error(f"Failed to render chart: {e}")
+                            try:
+                                st.altair_chart(chunk["content"], use_container_width=True) 
+                            except Exception as e:
+                                st.error(f"Failed to render chart: {e}")
                         elif chunk["type"] == "error":
                             st.error(chunk["content"])
                     
